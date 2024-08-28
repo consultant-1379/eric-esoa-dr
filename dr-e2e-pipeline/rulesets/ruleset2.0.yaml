@@ -1,0 +1,283 @@
+#
+# COPYRIGHT Ericsson 2023
+#
+#
+#
+# The copyright to the computer program(s) herein is the property of
+#
+# Ericsson Inc. The programs may be used and/or copied only with written
+#
+# permission from Ericsson Inc. or in accordance with the terms and
+#
+# conditions stipulated in the agreement/contract under which the
+#
+# program(s) have been supplied.
+#
+
+modelVersion: 2.0
+description: "DR E2E Pipeline"
+
+docker-images:
+  - adp-maven-builder: armdocker.rnd.ericsson.se/proj-adp-cicd-drop/bob-java17mvnbuilder:${env.MVN_BUILDER_TAG}
+  - eo-dm-image: armdocker.rnd.ericsson.se/proj-eo/common/deployment-manager:latest
+  - adp-auto-int: armdocker.rnd.ericsson.se/proj-adp-cicd-drop/adp-int-helm-chart-auto:${env.AUTO_INT_TAG}
+  - adp-helm-dr-check: armdocker.rnd.ericsson.se/proj-adp-cicd-drop/common-library-adp-helm-dr-check:${env.HELM_DR_CHECK_TAG}
+  - adp-release-auto: armdocker.rnd.ericsson.se/proj-adp-cicd-drop/bob-adp-release-auto:${env.RELEASE_AUTO_TAG}
+  - am-package-manager: armdocker.rnd.ericsson.se/proj-am/releases/eric-am-package-manager:${env.AM_PACKAGE_MANAGER_TAG}
+
+properties:
+  - release-name: "eric-bos-dr"
+  - chart-snapshots-repo: https://arm.sero.gic.ericsson.se/artifactory/proj-so-gs-all-snapshot-helm
+  - chart-releases-repo: https://arm.sero.gic.ericsson.se/artifactory/proj-so-gs-all-helm
+  - csar-releases-repo:  https://arm.seli.gic.ericsson.se/artifactory/proj-eric-bos-esoa-drop-generic-local/csars
+
+var:
+  - snapshot-version
+  - current-version
+  - updated-version
+  - gerrit-central-repo-url
+  - git-remote-origin-url
+  - csar-exists
+
+env:
+  - WORKSPACE
+  - DOCKER_NETWORK (default=--network host)
+  - HOME
+  - PWD
+  - MAVEN_CLI_OPTS (default=-Duser.home=${env.HOME} -B -s dr-e2e-pipeline/settings.xml)
+  - MAVEN_OPTS (default=-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn)
+  - MAVEN_RELEASE_FLAGS (default=)
+  - MVN_BUILDER_TAG (default=latest)
+  - CHART_NAME
+  - CHART_VERSION
+  - CHART_REPO
+  - DEPENDENCY_CHART_NAME (default=)
+  - DEPENDENCY_CHART_VERSION (default=)
+  - CLUSTER_CONFIG (default="supernova2")
+  - NAMESPACE (default="so-team-supernova2")
+  - GERRIT_CENTRAL (default=gerrit.ericsson.se)
+  - GERRIT_MIRROR (default=gerritmirror-ha.lmera.ericsson.se)
+  - AUTO_INT_TAG (default=latest)
+  - RELEASE_AUTO_TAG (default=latest)
+  - CHART_PATH (default=charts/eric-esoa-dr)
+  - GIT_REPO_URL (default=https://gerrit.ericsson.se/ESOA/DR-Parent/com.ericsson.bos.integration)
+  - GERRIT_USERNAME (default=esoadm100)
+  - TEMP_CHART_PATH (default=.bob/tmp)
+  - HELM_DR_CHECK_TAG (default=latest)
+  - SKIPPED_HELM_CHART_DESIGN_RULES (default=)
+  - VALUES_FILE_FOR_HELM_CHART_DESIGN_RULE_CHECK (default=)
+  - AM_PACKAGE_MANAGER_TAG (default=2.102.0-1)
+
+  # Credentials
+  - SERO_ARTIFACTORY_REPO_USER (default=esoadm100)
+  - SERO_ARTIFACTORY_REPO_PSW (default=)
+  - SELI_ARTIFACTORY_REPO_USER (default=esoadm100)
+  - SELI_ARTIFACTORY_REPO_PSW (default=)
+  - HELM_CREDS
+  - GERRIT_PASSWORD
+
+  # E2E Test Execution
+  - DR_BASE_HOSTNAME
+  - DR_FQDN
+  - STANDALONE (default=false)
+
+rules:
+  clean-workspace:
+    - task: rm
+      cmd:
+        - rm -rf .bob/
+        - rm -rf .kube/
+        - rm -rf dr-e2e-pipeline/test-output/
+
+  generate-artifact-properties:
+    - task: generate-adp-artifacts
+      docker-image: adp-release-auto
+      cmd: generate-adp-artifacts
+        --chart-name ${release-name}
+        --chart-version ${var.updated-version}
+        --chart-repo ${chart-releases-repo}
+
+  prepare-helm-chart:
+    - task: calculate new version with patch increase
+      cmd: version=$(grep '^version:' ${env.CHART_PATH}/Chart.yaml | awk '{print $2}'| awk -F. '{print $1"."$2"."($3+1)"-1"}'); echo $version > .bob/var.updated-version
+    - task: update chart with new version
+      docker-image: adp-release-auto
+      docker-flags:
+        - ${env.DOCKER_NETWORK}
+        - "--env HOME=${env.HOME}"
+        - "--volume ${env.HOME}:${env.HOME}"
+        - "--volume /etc/passwd:/etc/passwd:ro"
+        - "--volume /etc/ssh:/etc/ssh"
+        - "--env VERSION=${var.updated-version}"
+      cmd:
+        - chmod 777 dr-e2e-pipeline/scripts/update-chart-version.sh
+        - dr-e2e-pipeline/scripts/update-chart-version.sh
+    - task: update dependency in chart
+      condition: conditions:is-update-dependency
+      docker-image: adp-auto-int
+      cmd: ihc-update --folder ${env.CHART_PATH} --name ${env.DEPENDENCY_CHART_NAME} --version ${env.DEPENDENCY_CHART_VERSION}
+    - task: package snapshot build to .bob directory
+      docker-image: adp-auto-int
+      docker-flags:
+        - "--env HELM_REPO_CREDENTIALS=${env.HELM_CREDS}"
+        - "--volume ${env.HELM_CREDS}:${env.HELM_CREDS}"
+      cmd: ihc-package --folder ${env.CHART_PATH} --version ${var.updated-version} --helm-credentials ${env.HELM_CREDS}
+
+  conditions:
+    - task: is-update-dependency
+      cmd: test "${env.DEPENDENCY_CHART_NAME}" != "" || ${env.DEPENDENCY_CHART_VERSION} !=""
+
+  adp-helm-dr-check:
+    - task: dr-check
+      docker-image: adp-helm-dr-check
+      cmd: helm-dr-check
+        --helm-chart ${env.CHART_PATH}
+        --helm-v3
+        --output .bob/
+        -f ${env.VALUES_FILE_FOR_HELM_CHART_DESIGN_RULE_CHECK}
+        ${env.SKIPPED_HELM_CHART_DESIGN_RULES}
+
+  prepare-namespace:
+    - task: create-namespace
+      docker-image: eo-dm-image
+      docker-mounts:
+        - "/var/run/docker.sock:/var/run/docker.sock"
+        - "${env.PWD}:/workdir"
+        - "${env.PWD}/.bob:/root"
+        - "${env.PWD}:/.config"
+        - "${env.PWD}:/.cache"
+      docker-flags:
+        - --entrypoint=""
+        - "--env KUBECONFIG=/workdir/.kube/${env.CLUSTER_CONFIG}"
+      cmd: sh -c '
+        if kubectl get ns ${env.NAMESPACE}  2> /dev/null; then kubectl delete ns ${env.NAMESPACE};
+        fi && kubectl create ns ${env.NAMESPACE}'
+
+  deploy-helm-chart:
+    - task: deploy-chart
+      docker-image: eo-dm-image
+      docker-mounts:
+        - "/var/run/docker.sock:/var/run/docker.sock"
+        - "${env.PWD}:/workdir"
+        - "${env.PWD}/.bob:/root"
+        - "${env.PWD}:/.config"
+        - "${env.PWD}:/.cache"
+      docker-flags:
+        - --entrypoint=""
+        - "--env KUBECONFIG=/workdir/.kube/${env.CLUSTER_CONFIG}"
+        - "--workdir /workdir"
+      cmd: sh -c '
+        if [ ${env.STANDALONE} = false ]; then
+          helm install ${release-name} /workdir/.bob/eric-bos-dr-${var.updated-version}.tgz -n ${env.NAMESPACE} --wait --timeout 900s --set global.hosts.eric-bos-dr=${env.DR_FQDN} --set global.ingress.baseHostname=${env.DR_BASE_HOSTNAME} --set global.ingress.ingressClass=oam-${env.NAMESPACE} --set eric-esoa-dr-ui.ingress.host=${env.DR_FQDN} --set eric-esoa-dr-service-rbac-proxy.config.oidcAuth.issuerUrl=https://eric-sec-access-mgmt.${env.DR_BASE_HOSTNAME}/auth/realms/master --set eric-esoa-dr-service-rbac-proxy.config.oidcAuth.authnProxyLoginURL="https://${env.DR_FQDN}/sec/authn/v1/login?origin=" --set eric-esoa-rest-service-rbac-proxy.config.oidcAuth.issuerUrl=https://eric-sec-access-mgmt.${env.DR_BASE_HOSTNAME}/auth/realms/master --set eric-esoa-dr-ui-rbac-proxy.config.oidcAuth.issuerUrl=https://eric-sec-access-mgmt.${env.DR_BASE_HOSTNAME}/auth/realms/master --set eric-esoa-dr-ui-rbac-proxy.config.oidcAuth.authnProxyLoginURL="https://${env.DR_FQDN}/sec/authn/v1/login?origin=" --set  eric-esoa-dr-service.execution.jobAcquisitionInterval=3000 --set eric-esoa-dr-service.database.requiresClientCert=false --set eric-esoa-rest-service.database.requiresClientCert=false --values=dr-e2e-pipeline/config-values/default_config.yaml;
+        else
+          helm install ${release-name} /workdir/.bob/eric-bos-dr-${var.updated-version}.tgz -n ${env.NAMESPACE} --wait --timeout 900s --set global.hosts.eric-bos-dr=${env.DR_FQDN} --set global.ingress.baseHostname=${env.DR_BASE_HOSTNAME} --set global.ingress.ingressClass=oam-${env.NAMESPACE} --set eric-esoa-dr-ui.ingress.host=${env.DR_FQDN} --set eric-esoa-dr-service-rbac-proxy.config.oidcAuth.issuerUrl=https://eric-sec-access-mgmt.${env.DR_BASE_HOSTNAME}/auth/realms/master --set eric-esoa-dr-service-rbac-proxy.config.oidcAuth.authnProxyLoginURL="https://${env.DR_FQDN}/sec/authn/v1/login?origin=" --set eric-esoa-rest-service-rbac-proxy.config.oidcAuth.issuerUrl=https://eric-sec-access-mgmt.${env.DR_BASE_HOSTNAME}/auth/realms/master --set eric-esoa-dr-ui-rbac-proxy.config.oidcAuth.issuerUrl=https://eric-sec-access-mgmt.${env.DR_BASE_HOSTNAME}/auth/realms/master --set eric-esoa-dr-ui-rbac-proxy.config.oidcAuth.authnProxyLoginURL="https://${env.DR_FQDN}/sec/authn/v1/login?origin=" --set eric-esoa-subsystem-management-rbac-proxy.config.oidcAuth.issuerUrl=https://eric-sec-access-mgmt.${env.DR_BASE_HOSTNAME}/auth/realms/master --set eric-esoa-subsystem-management-rbac-proxy.config.oidcAuth.authnProxyLoginURL="https://${env.DR_FQDN}/sec/authn/v1/login?origin=" --set eric-esoa-dr-service.execution.jobAcquisitionInterval=3000 --values=dr-e2e-pipeline/config-values/standalone_config.yaml;
+        fi'
+  build-dr-e2e-tests-docker-image:
+    - task: mvn clean install
+      docker-image: adp-maven-builder
+      docker-flags:
+        - ${env.DOCKER_NETWORK}
+        - "--env MAVEN_OPTS=${env.MAVEN_OPTS}"
+        - "--env HOME=${env.HOME}"
+        - "--volume ${env.HOME}:${env.HOME}"
+        - "--volume /etc/ssh:/etc/ssh"
+        - "--volume /etc/passwd:/etc/passwd:ro"
+      cmd:
+        - mvn ${env.MAVEN_CLI_OPTS} -f ./dr-e2e-tests/pom.xml clean install -DskipTests=true -Dmaven.test.skip=true ${env.MAVEN_RELEASE_FLAGS}
+    - task: docker-build
+      cmd:
+        cd ${env.PWD}/dr-e2e-tests;
+        pwd;
+        docker build -f ./docker/Dockerfile -t dr-e2e-tests .
+
+  run-dr-e2e-tests:
+    - task: run automated tests
+      cmd:
+        sh -c '
+          docker run --name dr-e2e-tests --volume "${env.PWD}:/workdir" --env DR_HOST="https://${env.DR_FQDN}" --env IAM_HOST="https://eric-sec-access-mgmt.${env.DR_BASE_HOSTNAME}" --env NAMESPACE=${env.NAMESPACE} --env KUBECONFIG=/workdir/.kube/${env.CLUSTER_CONFIG} --env MTLS_ENABLED=true dr-e2e-tests;'
+    - task: fetch test results
+      cmd:
+        - cd ./dr-e2e-pipeline
+        - docker export -o dump.tar dr-e2e-tests
+        - tar -xvf dump.tar test-output
+        - tar --strip-components=1 -xvf dump.tar target/allure-results
+    - task: verify test results
+      cmd:
+        - chmod 777 dr-e2e-pipeline/scripts/verify_test_results.sh
+        - dr-e2e-pipeline/scripts/verify_test_results.sh "./test-output/testng-results.xml"
+  clean-up-docker-container:
+    - task: clean up docker container
+      cmd: sh -c '
+        if [ "$(docker ps -aq -f status=exited -f name=dr-e2e-tests)" ]; then docker rm dr-e2e-tests ;
+        fi'
+
+  publish-helm-chart:
+    - task: configure git remote for push
+      cmd:
+        - git config --get remote.origin.url >> .bob/var.git-remote-origin-url
+        - cat .bob/var.git-remote-origin-url | sed s#${env.GERRIT_MIRROR}#${env.GERRIT_CENTRAL}#g >> .bob/var.gerrit-central-repo-url
+    - task: commit the changes
+      cmd:
+        - git remote set-url --push origin ${var.gerrit-central-repo-url}
+        - chmod 777 dr-e2e-pipeline/scripts/git-commit.sh
+        - dr-e2e-pipeline/scripts/git-commit.sh ${var.updated-version}
+    - task: upload released version
+      docker-image: adp-auto-int
+      docker-flags:
+        - "--env SERO_ARTIFACTORY_REPO_PSW=${env.SERO_ARTIFACTORY_REPO_PSW}"
+      cmd: arm-upload --file .bob/eric-bos-dr-${var.updated-version}.tgz --destination ${chart-releases-repo}/eric-bos-dr --token ${env.SERO_ARTIFACTORY_REPO_PSW}
+
+  check-csar-exists:
+    - task: check-csar-exists
+      cmd:
+        - curl -s -u ${env.SELI_ARTIFACTORY_REPO_USER}:${env.SELI_ARTIFACTORY_REPO_PSW} https://arm.seli.gic.ericsson.se/artifactory/api/search/artifact?name=eric-bos-dr-${env.CHART_VERSION}.csar\&repos=proj-eric-bos-esoa-drop-generic-local | grep -qi "uri" && echo true  > .bob/var.csar-exists || echo false  > .bob/var.csar-exists
+
+  fetch-helm-chart:
+    - task: fetch-helm-chart
+      cmd:
+        - curl -O -u ${env.SERO_ARTIFACTORY_REPO_USER}:${env.SERO_ARTIFACTORY_REPO_PSW} --verbose ${chart-releases-repo}/eric-bos-dr/eric-bos-dr-${env.CHART_VERSION}.tgz --fail
+
+  create-csar:
+    - task: create-csar
+      docker-image: am-package-manager
+      docker-flags:
+        - "--workdir /csar"
+        - "--user $(id -u):$(id -g)"
+        - "--env DOCKER_CONFIG=/.docker"
+      docker-mounts:
+        - "${env.PWD}/.docker:/.docker"
+        - "${env.PWD}:/csar"
+        - "/var/run/docker.sock:/var/run/docker.sock"
+      cmd:  generate --set global.ingress.ingressClass=dr,global.ingress.baseHostname=dr --helm eric-bos-dr-${env.CHART_VERSION}.tgz -n eric-bos-dr-${env.CHART_VERSION} --sol-version 2.5.1 --helm-version 3.8.2
+
+  upload-csar:
+    - task: upload-csar
+      docker-image: adp-auto-int
+      docker-flags:
+        - "--env SELI_ARTIFACTORY_REPO_PSW=${env.SELI_ARTIFACTORY_REPO_PSW}"
+      cmd: arm-upload --file eric-bos-dr-${env.CHART_VERSION}.csar --destination ${csar-releases-repo}/eric-bos-dr/${env.CHART_VERSION} --token ${env.SELI_ARTIFACTORY_REPO_PSW}
+
+  remove-csar-and-chart:
+    - task: remove-csar
+      cmd: rm -f eric-bos-dr-${env.CHART_VERSION}.csar
+    - task: remove-chart
+      cmd: rm -f eric-bos-dr-${env.CHART_VERSION}.tgz
+
+  teardown:
+    - task: undeploy-releases
+      docker-image: eo-dm-image
+      docker-mounts:
+        - "/var/run/docker.sock:/var/run/docker.sock"
+        - "${env.PWD}:/workdir"
+        - "${env.PWD}/.bob:/root"
+        - "${env.PWD}:/.config"
+        - "${env.PWD}:/.cache"
+      docker-flags:
+        - --entrypoint=""
+        - "--env KUBECONFIG=/workdir/.kube/${env.CLUSTER_CONFIG}"
+      cmd: sh -c '
+        if helm get all ${release-name} -n ${env.NAMESPACE}  2> /dev/null; then helm uninstall ${release-name} -n ${env.NAMESPACE} --timeout 900s ;
+        fi'
+  clean-up:
+    - rule: teardown
+    - rule: clean-up-docker-container

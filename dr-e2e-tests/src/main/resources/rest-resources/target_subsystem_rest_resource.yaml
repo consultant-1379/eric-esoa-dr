@@ -1,0 +1,45 @@
+name: wiremock_target
+globalRequestHeaders:
+  content-type: [application/json]
+  Authorization: ["Bearer {{target_token}}"]
+resources:
+  targets:
+    path: '/targets'
+    methods:
+      get:
+        inbound:
+          transformationInTemplate:  ~
+        outbound:
+          transformationOutTemplate: ~
+  target:
+    path: '/targets/{{inputs.id}}'
+    methods:
+      get:
+        inbound:
+          transformationInTemplate:  ~
+        outbound:
+          transformationOutTemplate: ~
+  reconcile:
+    path: '/reconcile/targets/{{inputs.id}}'
+    methods:
+      post:
+        inbound:
+          transformationInTemplate:  ~
+        outbound:
+          transformationOutTemplate: ~
+      delete:
+        inbound:
+          transformationInTemplate:  ~
+        outbound:
+          transformationOutTemplate: ~
+globalErrorHandlers:
+  - errorCondition: "{{response.code >= 400}}"
+    outbound:
+      code: "{{response.code}}"
+      headers:
+        content-type: ["application/json"]
+      transformationOutTemplate: |
+        {
+          "status": "ERROR",
+          "info": "{{response.body}}"
+        }

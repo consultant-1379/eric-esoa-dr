@@ -1,0 +1,30 @@
+[
+  {
+    "featurePack": "/feature_packs/fp-1",
+    "description": "Job to test dr-service standalone. Uses shell executor to echo source and target data.",
+    "app": "application_1",
+    "job": "job_1",
+    "inputs": {},
+    "expectedDiscoveryCount": 1,
+    "expectedReconcileCount": 1
+  },
+  {
+    "featurePack": "/feature_packs/fp-2",
+    "description": "Job to test integration of dr-service, rest-service and subsystems using dr-stub.",
+    "app": "application_2",
+    "job": "job_2",
+    "inputs": {"sourceSubsystem":  "wiremock_source", "targetSubsystem":  "wiremock_target"},
+    "expectedDiscoveryCount": 12,
+    "expectedReconcileCount": 12
+  },
+  {
+    "featurePack": "/feature_packs/fp-2",
+    "description": "Job to test MTLS communication in rest-service using dr-stub.",
+    "app": "application_2",
+    "job": "job_2",
+    "inputs": {"sourceSubsystem":  "wiremock_source_mtls", "targetSubsystem":  "wiremock_target_mtls"},
+    "expectedDiscoveryCount": 12,
+    "expectedReconcileCount": 12,
+    "requiresMtlsEnabled": true
+  }
+]

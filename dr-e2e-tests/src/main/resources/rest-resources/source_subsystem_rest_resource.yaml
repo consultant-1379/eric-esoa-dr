@@ -1,0 +1,32 @@
+name: wiremock_source
+globalRequestHeaders:
+  content-type: [application/json]
+  Cookie: ["JSESSIONID={{source_token}}"]
+resources:
+  sources:
+    path: '/sources'
+    methods:
+      get:
+        inbound:
+          transformationInTemplate:  ~
+        outbound:
+          transformationOutTemplate: ~
+  source:
+    path: '/sources/{{inputs.id}}'
+    methods:
+      get:
+        inbound:
+          transformationInTemplate:  ~
+        outbound:
+          transformationOutTemplate: ~
+globalErrorHandlers:
+  - errorCondition: "{{response.code >= 400}}"
+    outbound:
+      code: "{{response.code}}"
+      headers:
+        content-type: ["application/json"]
+      transformationOutTemplate: |
+        {
+          "status": "ERROR",
+          "info": "{{response.body}}"
+        }

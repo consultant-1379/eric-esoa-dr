@@ -1,0 +1,15 @@
+name: listener_2
+description: "test listener"
+outputs:
+  eventType: jq(.request.eventType)
+  discoveryObjectStatus: jinja({{results[0].status}})
+  reconcileCommand: jinja({{results[0].filters[0].reconcileAction.command}})
+  reconcileCommandOutput: jinja({{results[0].filters[0].reconcileAction.commandOutput}})
+triggers:
+  - condition: jinja({{request.eventType=='CREATE'}})
+    applicationName: application_2
+    jobName: job_2
+    inputs: {
+        "sourceSubsystem": "jinja({{request.source}})",
+        "targetSubsystem": "jq(.request.target)"
+    }

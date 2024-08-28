@@ -1,0 +1,79 @@
+global:
+  security:
+    tls:
+      enabled: true
+    sasl:
+      enabled: false
+  createDB: false
+  networkPolicy:
+    enabled: false
+  pullSecret: k8s-registry-secret
+
+eric-esoa-dr-database-pg:
+  enabled: false
+eric-esoa-subsystem-management:
+  enabled: false
+tags:
+  standalone: false
+
+eric-esoa-dr-service:
+  database:
+    host: edb-so-dr-assurance-rw
+    dbName: app
+    secret: edb-users-secret
+    port: 5432
+    schemaName: dr_service
+    sslMode: verify-ca
+    serverCertSecret: edb-so-dr-assurance-ca
+
+eric-esoa-rest-service:
+  database:
+    host: edb-so-dr-assurance-rw
+    secret: edb-users-secret
+    port: 5432
+    dbName: app
+    schemaName: rest_service
+    sslMode: verify-ca
+    serverCertSecret: edb-so-dr-assurance-ca
+
+eric-esoa-dr-ui:
+  groupsClaim: iam_roles
+
+eric-esoa-dr-service-rbac-proxy:
+  config:
+    tls:
+      existingSecret: ""
+      privateKey: ""
+      certKey: ""
+      caKey: ""
+    oidcAuth:
+      groupsClaim: iam_roles
+    certAuth:
+      enabled: true
+      clientCaSecret: eric-bos-esoa-common-client-ca-secret
+
+eric-esoa-rest-service-rbac-proxy:
+  config:
+    tls:
+      existingSecret: ""
+      privateKey: ""
+      certKey: ""
+      caKey: ""
+    oidcAuth:
+      groupsClaim: iam_roles
+    certAuth:
+      enabled: true
+      clientCaSecret: eric-bos-esoa-common-client-ca-secret
+
+eric-esoa-dr-ui-rbac-proxy:
+  config:
+    tls:
+      existingSecret: ""
+      privateKey: ""
+      certKey: ""
+      caKey: ""
+    oidcAuth:
+      groupsClaim: iam_roles
+    certAuth:
+      enabled: true
+      clientCaSecret: eric-bos-esoa-common-client-ca-secret

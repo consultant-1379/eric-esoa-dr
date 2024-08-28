@@ -1,0 +1,45 @@
+apiVersion: v2
+dependencies:
+- name: eric-esoa-dr-service
+  repository: https://arm.sero.gic.ericsson.se/artifactory/proj-so-gs-all-helm/
+  version: 1.6.7-1
+- name: eric-esoa-rest-service
+  repository: https://arm.sero.gic.ericsson.se/artifactory/proj-so-gs-all-helm/
+  version: 1.6.2-1
+- alias: eric-esoa-dr-database-pg
+  condition: eric-esoa-dr-database-pg.enabled
+  name: eric-data-document-database-pg
+  repository: https://arm.sero.gic.ericsson.se/artifactory/proj-adp-gs-all-helm/
+  tags:
+  - standalone
+  version: 8.21.0+24
+- condition: eric-esoa-subsystem-management.enabled
+  name: eric-esoa-subsystem-management
+  repository: https://arm.sero.gic.ericsson.se/artifactory/proj-so-gs-all-helm/
+  tags:
+  - standalone
+  version: 3.5.2-1
+- alias: eric-esoa-dr-service-rbac-proxy
+  name: eric-bss-kube-rbac-proxy
+  repository: https://arm.seli.gic.ericsson.se/artifactory/proj-bam-released-helm/
+  version: 1.46.0+7
+- alias: eric-esoa-rest-service-rbac-proxy
+  name: eric-bss-kube-rbac-proxy
+  repository: https://arm.seli.gic.ericsson.se/artifactory/proj-bam-released-helm/
+  version: 1.46.0+7
+- name: eric-esoa-dr-ui
+  repository: https://arm.seli.gic.ericsson.se/artifactory/proj-eric-bos-esoa-drop-helm/
+  version: 1.6.0-28
+- alias: eric-esoa-dr-ui-rbac-proxy
+  name: eric-bss-kube-rbac-proxy
+  repository: https://arm.seli.gic.ericsson.se/artifactory/proj-bam-released-helm/
+  version: 1.46.0+7
+- alias: eric-esoa-subsystem-management-rbac-proxy
+  condition: eric-esoa-subsystem-management.enabled
+  name: eric-bss-kube-rbac-proxy
+  repository: https://arm.seli.gic.ericsson.se/artifactory/proj-bam-released-helm/
+  tags:
+  - standalone
+  version: 1.46.0+7
+name: eric-bos-dr
+version: 1.4.25-1

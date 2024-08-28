@@ -1,0 +1,33 @@
+#
+# COPYRIGHT Ericsson 2023
+#
+#
+#
+# The copyright to the computer program(s) herein is the property of
+#
+# Ericsson Inc. The programs may be used and/or copied only with written
+#
+# permission from Ericsson Inc. or in accordance with the terms and
+#
+# conditions stipulated in the agreement/contract under which the
+#
+# program(s) have been supplied.
+#
+
+{{- if and .Values.global.security.tls.enabled .Values.tags.standalone }}
+apiVersion: siptls.sec.ericsson.com/v1
+kind: InternalUserCA
+metadata:
+  name: eric-bos-esoa-common-client-ca
+  labels:
+    {{- include "eric-esoa-dr.kubernetes-io-info" .| nindent 4 }}
+  annotations:
+    {{- include "eric-esoa-dr.annotations" .| nindent 4 }}
+spec:
+  certificate:
+    subject:
+      cn: eric-bos-esoa-common-client-ca
+  kubernetes:
+    certificateName: cacertbundle.pem
+    generatedSecretName: eric-bos-esoa-common-client-ca-secret
+{{- end }}

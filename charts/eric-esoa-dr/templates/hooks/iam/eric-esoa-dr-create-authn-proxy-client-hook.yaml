@@ -1,0 +1,115 @@
+#
+# COPYRIGHT Ericsson 2023
+#
+#
+#
+# The copyright to the computer program(s) herein is the property of
+#
+# Ericsson Inc. The programs may be used and/or copied only with written
+#
+# permission from Ericsson Inc. or in accordance with the terms and
+#
+# conditions stipulated in the agreement/contract under which the
+#
+# program(s) have been supplied.
+#
+{{- if and .Values.tags.standalone .Values.global.hosts.iam }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ template "eric-esoa-dr.name" . }}-create-authn-client-hook
+  labels:
+    {{- include "eric-esoa-dr.kubernetes-io-info" .| nindent 4 }}
+  annotations:
+    {{- include "eric-esoa-dr.annotations" .| nindent 4 }}
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
+spec:
+  backoffLimit: 1800
+  activeDeadlineSeconds: 1800
+  template:
+    metadata:
+      labels:
+        app: {{ .Chart.Name }}
+    spec:
+      serviceAccountName: {{ template "eric-esoa-dr.name" . }}-sa
+      {{- if  .Values.imageCredentials.pullSecret }}
+      imagePullSecrets:
+        - name: {{ .Values.imageCredentials.pullSecret | quote }}
+      {{- else if .Values.global.pullSecret }}
+      imagePullSecrets:
+        - name: {{ .Values.global.pullSecret | quote }}
+      {{- end }}
+      restartPolicy: OnFailure
+      containers:
+        - name: iam-client
+          image: {{ template "eric-esoa-dr.imagePath" (dict "imageId" "iam-client" "values" .Values "files" .Files)  }}
+          imagePullPolicy: {{ .Values.global.registry.imagePullPolicy | quote }}
+          env:
+            - name: CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.global.iam.kubernetesSecret | quote }}
+                  key: {{ .Values.global.iam.secretKey | quote }}
+            - name: IAM_ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.global.iam.adminSecret | quote }}
+                  key: {{ .Values.global.iam.userKey | quote }}
+            - name: IAM_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.global.iam.adminSecret | quote }}
+                  key: {{ .Values.global.iam.passwordKey | quote }}
+          args:
+            - "create"
+            - "client"
+            - "--keycloak_hostname={{ .Values.global.hosts.iam }}"
+            - "--keycloak_user=$(IAM_ADMIN_USER)"
+            - "--keycloak_password=$(IAM_ADMIN_PASSWORD)"
+            - "--config=/config/client-configuration.json"
+          volumeMounts:
+            - name: create-iam-client-volume
+              mountPath: /config
+            - name: create-cacert-volume
+              mountPath: /mnt/certs
+          securityContext:
+            allowPrivilegeEscalation: true
+            readOnlyRootFilesystem: true
+            runAsNonRoot: false
+            runAsUser: 235765
+            capabilities:
+              drop:
+                - all
+          resources:
+            {{- with index .Values "resources" "iam-client" }}
+            {{ toYaml . | indent 12 | trim }}
+            {{- end }}
+      {{ if .Values.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds:  {{ .Values.terminationGracePeriodSeconds }}
+      {{ end }}
+      {{ with .Values.tolerations }}
+      tolerations:
+        {{ toYaml . | nindent 6 }}
+      {{ end }}
+      {{- if index .Values.podPriority "iam-client" "priorityClassName" }}
+      priorityClassName: {{ index .Values.podPriority "iam-client" "priorityClassName" | quote }}
+      {{- end }}
+      {{ with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{ toYaml . | nindent 6 }}
+      {{ end }}
+      {{ include "eric-esoa-dr.nodeSelector" . | nindent 6 }}
+      volumes:
+        - name: create-iam-client-volume
+          configMap:
+            name: {{ template "eric-esoa-dr.name" . }}-authn-proxy-client-configmap
+            defaultMode: 0777
+        - name: create-cacert-volume
+          secret:
+            secretName: {{ .Values.global.iam.cacert.secretName }}
+            items:
+              - key: {{ .Values.global.iam.cacert.key }}
+                path: {{ .Values.global.iam.cacert.filePath }}
+  {{- end }}

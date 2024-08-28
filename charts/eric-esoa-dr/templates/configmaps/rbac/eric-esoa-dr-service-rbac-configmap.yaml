@@ -1,0 +1,154 @@
+#
+# COPYRIGHT Ericsson 2023
+#
+#
+#
+# The copyright to the computer program(s) herein is the property of
+#
+# Ericsson Inc. The programs may be used and/or copied only with written
+#
+# permission from Ericsson Inc. or in accordance with the terms and
+#
+# conditions stipulated in the agreement/contract under which the
+#
+# program(s) have been supplied.
+#
+
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ template "eric-esoa-dr.name" . }}-dr-service-rbac-configmap
+  labels:
+    app: {{ template "eric-esoa-dr.name" . }}
+  {{- include "eric-esoa-dr.kubernetes-io-info" .| nindent 4 }}
+    com.ericsson.bss/bam-global-rbac: {{ .Values.rbac.label }}
+  annotations:
+  {{- include "eric-esoa-dr.annotations" .| nindent 4 }}
+data:
+  rbac: |
+    policy:
+      dr-service-reader-1:
+        PType: p
+        V0: eric-bos-dr:reader
+        V1: /discovery-and-reconciliation/v1/feature-packs*
+        V2: get
+      dr-service-reader-2:
+        PType: p
+        V0: eric-bos-dr:reader
+        V1: /discovery-and-reconciliation/v1/jobs*
+        V2: get
+      dr-service-reader-3:
+        PType: p
+        V0: eric-bos-dr:reader
+        V1: /discovery-and-reconciliation/v1/job-schedules*
+        V2: get
+      dr-service-writer-1:
+        PType: p
+        V0: eric-bos-dr:writer
+        V1: /discovery-and-reconciliation/v1/feature-packs*
+        V2: get
+      dr-service-writer-2:
+        PType: p
+        V0: eric-bos-dr:writer
+        V1: /discovery-and-reconciliation/v1/feature-packs*
+        V2: create
+      dr-service-writer-3:
+        PType: p
+        V0: eric-bos-dr:writer
+        V1: /discovery-and-reconciliation/v1/feature-packs*
+        V2: update
+      dr-service-writer-4:
+        PType: p
+        V0: eric-bos-dr:writer
+        V1: /discovery-and-reconciliation/v1/feature-packs*
+        V2: delete
+      dr-service-writer-5:
+        PType: p
+        V0: eric-bos-dr:writer
+        V1: /discovery-and-reconciliation/v1/jobs*
+        V2: get
+      dr-service-writer-6:
+        PType: p
+        V0: eric-bos-dr:writer
+        V1: /discovery-and-reconciliation/v1/jobs*
+        V2: create
+      dr-service-writer-7:
+        PType: p
+        V0: eric-bos-dr:writer
+        V1: /discovery-and-reconciliation/v1/jobs*
+        V2: delete
+      dr-service-writer-8:
+        PType: p
+        V0: eric-bos-dr:writer
+        V1: /discovery-and-reconciliation/v1/job-schedules
+        V2: create
+      dr-service-writer-9:
+        PType: p
+        V0: eric-bos-dr:writer
+        V1: /discovery-and-reconciliation/v1/job-schedules*
+        V2: delete
+      dr-service-writer-10:
+        PType: p
+        V0: eric-bos-dr:writer
+        V1: /discovery-and-reconciliation/v1/job-schedules*
+        V2: patch
+      dr-service-writer-11:
+        PType: p
+        V0: eric-bos-dr:writer
+        V1: /discovery-and-reconciliation/v1/job-schedules*
+        V2: get
+      dr-service-admin-1:
+        PType: p
+        V0: eric-bos-dr:admin
+        V1: /discovery-and-reconciliation/v1/feature-packs*
+        V2: get
+      dr-service-admin-2:
+        PType: p
+        V0: eric-bos-dr:admin
+        V1: /discovery-and-reconciliation/v1/feature-packs*
+        V2: create
+      dr-service-admin-3:
+        PType: p
+        V0: eric-bos-dr:admin
+        V1: /discovery-and-reconciliation/v1/feature-packs*
+        V2: update
+      dr-service-admin-4:
+        PType: p
+        V0: eric-bos-dr:admin
+        V1: /discovery-and-reconciliation/v1/feature-packs*
+        V2: delete
+      dr-service-admin-5:
+        PType: p
+        V0: eric-bos-dr:admin
+        V1: /discovery-and-reconciliation/v1/jobs*
+        V2: get
+      dr-service-admin-6:
+        PType: p
+        V0: eric-bos-dr:admin
+        V1: /discovery-and-reconciliation/v1/jobs*
+        V2: create
+      dr-service-admin-7:
+        PType: p
+        V0: eric-bos-dr:admin
+        V1: /discovery-and-reconciliation/v1/jobs*
+        V2: delete
+      dr-service-admin-8:
+        PType: p
+        V0: eric-bos-dr:admin
+        V1: /discovery-and-reconciliation/v1/job-schedules
+        V2: create
+      dr-service-admin-9:
+        PType: p
+        V0: eric-bos-dr:admin
+        V1: /discovery-and-reconciliation/v1/job-schedules*
+        V2: delete
+      dr-service-admin-10:
+        PType: p
+        V0: eric-bos-dr:admin
+        V1: /discovery-and-reconciliation/v1/job-schedules*
+        V2: patch
+      dr-service-admin-11:
+        PType: p
+        V0: eric-bos-dr:admin
+        V1: /discovery-and-reconciliation/v1/job-schedules*
+        V2: get

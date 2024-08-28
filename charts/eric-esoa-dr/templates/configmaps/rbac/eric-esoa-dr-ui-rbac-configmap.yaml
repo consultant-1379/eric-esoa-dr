@@ -1,0 +1,44 @@
+#
+# COPYRIGHT Ericsson 2023
+#
+#
+#
+# The copyright to the computer program(s) herein is the property of
+#
+# Ericsson Inc. The programs may be used and/or copied only with written
+#
+# permission from Ericsson Inc. or in accordance with the terms and
+#
+# conditions stipulated in the agreement/contract under which the
+#
+# program(s) have been supplied.
+#
+
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ template "eric-esoa-dr.name" . }}-dr-ui-rbac-configmap
+  labels:
+    app: {{ template "eric-esoa-dr.name" . }}
+  {{- include "eric-esoa-dr.kubernetes-io-info" .| nindent 4 }}
+    com.ericsson.bss/bam-global-rbac: {{ .Values.rbac.label }}
+  annotations:
+  {{- include "eric-esoa-dr.annotations" .| nindent 4 }}
+data:
+  rbac: |
+    policy:
+      dr-ui-reader-1:
+        PType: p
+        V0: eric-bos-dr:reader
+        V1: /dr-ui*
+        V2: get
+      dr-ui-writer-1:
+        PType: p
+        V0: eric-bos-dr:writer
+        V1: /dr-ui*
+        V2: get
+      dr-ui-admin-1:
+        PType: p
+        V0: eric-bos-dr:admin
+        V1: /dr-ui*
+        V2: get

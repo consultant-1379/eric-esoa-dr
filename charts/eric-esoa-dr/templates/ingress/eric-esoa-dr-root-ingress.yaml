@@ -1,0 +1,39 @@
+#
+# COPYRIGHT Ericsson 2023
+#
+#
+#
+# The copyright to the computer program(s) herein is the property of
+#
+# Ericsson Inc. The programs may be used and/or copied only with written
+#
+# permission from Ericsson Inc. or in accordance with the terms and
+#
+# conditions stipulated in the agreement/contract under which the
+#
+# program(s) have been supplied.
+#
+
+{{- if .Values.ingress.enabled }}
+apiVersion: projectcontour.io/v1
+kind: HTTPProxy
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: {{ template "eric-esoa-dr.ingressClass" . }}
+  name: {{ template "eric-esoa-dr.name" . }}-root-ingress
+spec:
+  virtualhost:
+    fqdn: {{ template "eric-esoa-dr.fqdn" . }}
+    {{- if .Values.ingress.tls.enabled }}
+    tls:
+      secretName: {{ required "A valid .Values.ingress.tls.secretName entry required" .Values.ingress.tls.secretName }}
+    {{- end }}
+  includes:
+{{- if .Values.tags.standalone }}
+    - name: eric-esoa-subsystem-management
+{{- end }}
+    - name: eric-esoa-dr-service
+    - name: eric-esoa-rest-service
+    - name: eric-esoa-dr-ui
+    - name: eric-bss-bam-authn-proxy
+{{- end }}

@@ -1,0 +1,68 @@
+global:
+  security:
+    tls:
+      enabled: true
+    sasl:
+      enabled: false
+  networkPolicy:
+    enabled: false
+  pullSecret: k8s-registry-secret
+
+tags:
+  standalone: true
+
+eric-esoa-dr-ui:
+  groupsClaim: iam_roles
+
+eric-esoa-dr-service-rbac-proxy:
+  config:
+    tls:
+      existingSecret: ""
+      privateKey: ""
+      certKey: ""
+      caKey: ""
+    oidcAuth:
+      groupsClaim: iam_roles
+    certAuth:
+      enabled: true
+      clientCaSecret: eric-bos-esoa-common-client-ca-secret
+
+eric-esoa-rest-service-rbac-proxy:
+  config:
+    tls:
+      existingSecret: ""
+      privateKey: ""
+      certKey: ""
+      caKey: ""
+    oidcAuth:
+      groupsClaim: iam_roles
+    certAuth:
+      enabled: true
+      clientCaSecret: eric-bos-esoa-common-client-ca-secret
+
+eric-esoa-dr-ui-rbac-proxy:
+  config:
+    tls:
+      existingSecret: ""
+      privateKey: ""
+      certKey: ""
+      caKey: ""
+    oidcAuth:
+      groupsClaim: iam_roles
+    certAuth:
+      enabled: true
+      clientCaSecret: eric-bos-esoa-common-client-ca-secret
+
+eric-esoa-subsystem-management-rbac-proxy:
+  config:
+    tls:
+      existingSecret: ""
+      privateKey: ""
+      certKey: ""
+      caKey: ""
+    oidcAuth:
+      groupsClaim: iam_roles
+    certAuth:
+      enabled: true
+      clientCaSecret: eric-bos-esoa-common-client-ca-secret
+

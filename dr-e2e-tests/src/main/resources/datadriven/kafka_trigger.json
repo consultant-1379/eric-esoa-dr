@@ -1,0 +1,22 @@
+[
+  {
+    "description": "Consume message from unsecure broker",
+    "featurePack": "/feature_packs/fp-1",
+    "listener": "listener_1",
+    "event": {"eventType":  "CREATE"},
+    "subsystemFilePath": "/subsystems/kafka_subsystem.json",
+    "useDefaultGroupId": false,
+    "topics": ["dr-test-topic-1"],
+    "triggeredJobName": "listener_1-job_1"
+  },
+  {
+    "description": "Consume message from secure (mtls) broker",
+    "featurePack": "/feature_packs/fp-1",
+    "listener": "listener_1",
+    "event": {"eventType":  "CREATE"},
+    "subsystemFilePath": "/subsystems/kafka_ssl_subsystem.json",
+    "useDefaultGroupId": false,
+    "topics": ["dr-test-topic-2"],
+    "triggeredJobName": "listener_1-job_1"
+  }
+]

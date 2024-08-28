@@ -1,0 +1,21 @@
+{
+    "name": "kafka-1_ssl",
+    "vendor": "mandatory_not_used",
+    "subsystemType": {
+        "type": "KAFKA"
+    },
+    "url": "not_used",
+    "connectionProperties": [
+        {
+            "username": "mandatory_not_used",
+            "password": "mandatory_not_used",
+            "bootstrapServer": "eric-bos-dr-stub-kafka:9094",
+            "ssl.enabled": true,
+            "ssl.trustStoreSecretName": "eric-esoa-rest-service-truststore-secret-e2e-tests",
+            "ssl.trustStorePassword": "password",
+            "ssl.keyStoreSecretName": "eric-esoa-rest-service-keystore-secret-e2e-tests",
+            "ssl.keyStorePassword": "password",
+            "ssl.keyPassword": "password"
+        }
+    ]
+}

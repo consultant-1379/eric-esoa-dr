@@ -1,0 +1,53 @@
+name: "application_3"
+description: |
+  Test Application which returns an error discovering sources.
+jobs:
+  - name: job_3
+    description: "test job returns an error fetching sources"
+    api:
+      properties:
+        - name: id
+        - name: name
+    discover:
+      source:
+        fetchAction:
+          type: python
+          preFunction: ~
+          command: "get_sources.py"
+          outputFormat: json
+          postFunction: ~
+          mapping:
+            id: .id
+            name: .name
+        enrichAction: ~
+      target:
+        fetchAction:
+          type: shell
+          preFunction: ~
+          command: |
+            echo '[]'
+          outputFormat: json
+          postFunction: ~
+          mapping:
+            id: .id
+            name: .name
+        enrichAction: ~
+      linkSourceAndTarget: 'id:id'
+      filters:
+        sourceNotInTarget:
+          condition:
+            name: sourceNotInTarget
+          filterMatchText: 'Missing in Target'
+          reconcileAction: default
+    reconcile:
+      source:
+        enrichAction: ~
+      target:
+        enrichAction: ~
+        reconcileActions:
+          default:
+            type: shell
+            command: |
+              echo '{"result":"SUCCESS"}'
+            mapping:
+              result: .result

@@ -1,0 +1,108 @@
+#
+# COPYRIGHT Ericsson 2024
+#
+#
+#
+# The copyright to the computer program(s) herein is the property of
+#
+# Ericsson Inc. The programs may be used and/or copied only with written
+#
+# permission from Ericsson Inc. or in accordance with the terms and
+#
+# conditions stipulated in the agreement/contract under which the
+#
+# program(s) have been supplied.
+#
+
+{{- if .Values.alarms.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "eric-esoa-dr.name" . }}-fault-mappings
+  labels:
+    app: {{ template "eric-esoa-dr.name" . }}
+    bss.ericsson.com/bamFaultmapDelegate: "true"
+  {{- include "eric-esoa-dr.kubernetes-io-info" .| nindent 4 }}
+  annotations:
+  {{- include "eric-esoa-dr.annotations" .| nindent 4 }}
+data:
+  eric-esoa-dr-service.json: |-
+    [
+      {
+          "faultName": "DRServiceUnavailable",
+          "vendor": 193,
+          "code": 10002,
+          "specificProblem": "D&R Service Unavailable",
+          "category": "ProcessingErrorAlarm",
+          "probableCause": 356,
+          "defaultSeverity": "Critical",
+          "defaultExpiration": 0
+      },
+      {
+          "faultName": "DRServiceDegraded",
+          "vendor": 193,
+          "code": 10002,
+          "specificProblem": "D&R Service Degraded",
+          "category": "ProcessingErrorAlarm",
+          "probableCause": 356,
+          "defaultSeverity": "Warning",
+          "defaultExpiration": 0
+      },
+      {
+          "faultName": "DRServiceJobFailed",
+          "vendor": 193,
+          "code": 22020096,
+          "specificProblem": "D&R job is in a failed state",
+          "category": "ProcessingErrorAlarm",
+          "probableCause": 158,
+          "defaultSeverity": "Warning",
+          "defaultExpiration": 0
+      }
+    ]
+  eric-esoa-rest-service.json: |-
+    [
+      {
+          "faultName": "RestServiceUnavailable",
+          "vendor": 193,
+          "code": 10002,
+          "specificProblem": "D&R Rest Service Unavailable",
+          "category": "ProcessingErrorAlarm",
+          "probableCause": 356,
+          "defaultSeverity": "Critical",
+          "defaultExpiration": 0
+      },
+      {
+          "faultName": "RestServiceDegraded",
+          "vendor": 193,
+          "code": 10002,
+          "specificProblem": "D&R Rest Service Degraded",
+          "category": "ProcessingErrorAlarm",
+          "probableCause": 356,
+          "defaultSeverity": "Warning",
+          "defaultExpiration": 0
+      }
+    ]
+  eric-esoa-dr-ui.json: |-
+    [
+      {
+          "faultName": "DRUIUnavailable",
+          "vendor": 193,
+          "code": 10002,
+          "specificProblem": "D&R GUI Unavailable",
+          "category": "ProcessingErrorAlarm",
+          "probableCause": 356,
+          "defaultSeverity": "Critical",
+          "defaultExpiration": 0
+      },
+      {
+          "faultName": "DRUIDegraded",
+          "vendor": 193,
+          "code": 10002,
+          "specificProblem": "D&R GUI Degraded",
+          "category": "ProcessingErrorAlarm",
+          "probableCause": 356,
+          "defaultSeverity": "Warning",
+          "defaultExpiration": 0
+      }
+    ]
+{{- end }}

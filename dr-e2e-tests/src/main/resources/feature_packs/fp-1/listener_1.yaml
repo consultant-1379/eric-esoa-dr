@@ -1,0 +1,7 @@
+name: listener_1
+description: "test listener"
+triggers:
+  - condition: jinja({{request.eventType=='CREATE'}})
+    applicationName: application_1
+    jobName: job_1
+    inputs: {}

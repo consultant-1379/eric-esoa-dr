@@ -1,0 +1,31 @@
+#
+# COPYRIGHT Ericsson 2023
+#
+#
+#
+# The copyright to the computer program(s) herein is the property of
+#
+# Ericsson Inc. The programs may be used and/or copied only with written
+#
+# permission from Ericsson Inc. or in accordance with the terms and
+#
+# conditions stipulated in the agreement/contract under which the
+#
+# program(s) have been supplied.
+#
+
+{{ if .Values.certificates.enabled }}
+{{ if .Values.certificates.ca.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ template "eric-esoa-dr.name" . }}-issuer
+  labels:
+    {{- include "eric-esoa-dr.kubernetes-io-info" .| nindent 4 }}
+  annotations:
+    {{- include "eric-esoa-dr.annotations" .| nindent 4 }}
+spec:
+  ca:
+    secretName: {{ template "eric-esoa-dr.name" . }}-ca-cert
+{{- end }}
+{{- end }}

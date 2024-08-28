@@ -1,0 +1,10 @@
+{
+  "name": "schedule-2",
+  "description": "test job schedule with fp-2",
+  "expression": "0/3 * * * * *",
+  "featurePack": "/feature_packs/fp-2",
+  "app": "application_2",
+  "job": "job_2",
+  "inputs": {"sourceSubsystem":  "wiremock_source", "targetSubsystem":  "wiremock_target"},
+  "autoReconcile": true
+}

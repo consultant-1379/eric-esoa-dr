@@ -1,0 +1,180 @@
+name: "application_2"
+description: |
+  Test Application for D&R E2E testing.
+        - Fetch sources using PYTHON script
+        - Enrich source(s) using PYTHON script during reconcile
+        - Fetch targets using REST
+        - Enrich target using REST during discovery
+        - Expose API properties for source and target
+        - Link source and targets
+        - Match all supported built-in filters (sourceNotInTarget etc.)
+        - Match custom filter using groovy script
+        - Reconcile targets using REST
+        - Use of jinja script in pre/post function (inline and script)
+        - Use of jinja substitution in action properties
+        - Passing substituted arguments to python script
+jobs:
+  - name: job_2
+    description: "test job which fetches source and target data from D&R wiremock stub."
+    api:
+      properties:
+        - name: id
+        - name: name
+        - name: source.prop1
+        - name: source.prop2
+        - name: target.prop1
+        - name: target.prop2
+    discover:
+      inputs:
+        - name: sourceSubsystem
+          mandatory: true
+        - name: targetSubsystem
+          mandatory: true
+      source:
+        fetchAction:
+          type: python
+          preFunction: ~
+          command: "get_sources.py"
+          outputFormat: json
+          properties:
+            arg1: "{{inputs.sourceSubsystem}}"
+          postFunction: ~
+          mapping:
+            id: .id
+            name: .name
+        enrichAction:
+          type: python
+          preFunction: ~
+          command: "enrich_source.py"
+          outputFormat: json
+          properties:
+            arg1: "{{inputs.sourceSubsystem}}"
+            arg2: "{{source.id}}"
+          postFunction: ~
+          mapping:
+            prop1: .prop1
+            prop2: .prop2
+      target:
+        fetchAction:
+          type: rest
+          preFunction: ~
+          command: ""
+          outputFormat: json
+          properties:
+            subsystemName: "{{inputs.targetSubsystem}}"
+            resource:
+              resourceConfigurationName: wiremock_target
+              resourceName: targets
+            body: |
+              {
+                "method": "GET",
+                "responseFormat": "json"
+              }
+          postFunction: ~
+          mapping:
+            id: .id
+            name: .name
+        enrichAction:
+          type: rest
+          preFunction: ~
+          command: ""
+          outputFormat: json
+          properties:
+            subsystemName: "{{inputs.targetSubsystem}}"
+            resource:
+              resourceConfigurationName: wiremock_target
+              resourceName: target
+            body: |
+              {
+                "method": "GET",
+                "responseFormat": "json",
+                "inputs": { "id": "{{target.id}}" }
+              }
+          postFunction: ~
+          mapping:
+            prop1: .prop1
+            prop2: .prop2
+      linkSourceAndTarget: 'id:id'
+      filters:
+        sourceNotInTarget:
+          condition:
+            name: sourceNotInTarget
+          filterMatchText: 'Missing in Target'
+          reconcileAction: addOrUpdate
+        sourceMismatchedInTarget:
+          condition:
+            name: sourceMismatchedInTarget
+            arg: 'prop1:prop1&prop2:prop2'
+          filterMatchText: 'Mismatched in Target'
+          reconcileAction: addOrUpdate
+        targetNotInSource:
+          condition:
+            name: targetNotInSource
+          filterMatchText: 'Missing in Source'
+          reconcileAction: delete
+        sourceInTarget:
+          condition:
+            name: sourceInTarget
+            arg: 'prop1:prop1&prop2:prop2'
+          filterMatchText: 'Found in Target'
+          reconcileAction: none
+            # sourceCondition:
+            # condition:
+            # name: sourceScript
+          # arg: '@sourceNotInTarget_asset.groovy'
+          # filterMatchText: 'Missing in Target'
+          # reconcileAction: action1
+    reconcile:
+      #inputs:
+      source:
+        enrichAction: ~
+      target:
+        enrichAction: ~
+        reconcileActions:
+          addOrUpdate:
+            type: rest
+            preFunction: ~
+            command: ""
+            outputFormat: json
+            properties:
+              subsystemName: "{{inputs.targetSubsystem}}"
+              resource:
+                resourceConfigurationName: wiremock_target
+                resourceName: reconcile
+              body: |
+                {
+                  "method": "POST",
+                  "responseFormat": "json",
+                  "inputs": { "id": "{{source.id}}" },
+                  "body": {"prop1": "{{source.prop1}}", "prop2": "{{source.prop2}}" }
+                }
+
+            postFunction: ~
+            mapping:
+              result: .result
+          delete:
+            type: rest
+            preFunction: ~
+            command: ""
+            outputFormat: json
+            properties:
+              subsystemName: "{{inputs.targetSubsystem}}"
+              resource:
+                resourceConfigurationName: wiremock_target
+                resourceName: reconcile
+              body: |
+                {
+                  "method": "DELETE",
+                  "responseFormat": "json",
+                  "inputs": { "id": "{{target.id}}" }
+                }
+
+            postFunction: ~
+            mapping:
+              result: .result
+          none:
+            type: shell
+            command: |
+              echo '{"result":"SUCCESS"}'
+            mapping:
+              result: .result

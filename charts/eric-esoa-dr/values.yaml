@@ -1,0 +1,312 @@
+#
+# COPYRIGHT Ericsson 2023
+#
+#
+#
+# The copyright to the computer program(s) herein is the property of
+#
+# Ericsson Inc. The programs may be used and/or copied only with written
+#
+# permission from Ericsson Inc. or in accordance with the terms and
+#
+# conditions stipulated in the agreement/contract under which the
+#
+# program(s) have been supplied.
+#
+
+global:
+  database:
+    user: esoa_user
+  createDB: true
+  log:
+    streamingMethod:
+  networkPolicy:
+    enabled: false
+  ingress:
+    enabled: true
+    baseHostname: ""              # mandatory: shall be supplied at install time, set to base url from BAM installation, prefix should not be included
+    ingressClass: ""              # mandatory: shall be supplied at install time,
+  hosts:
+      eric-bos-dr:               # optional: if set, this will be the FQDN for D&R, must include the FQDN prefix
+      iam: ""                     # optional: if set then iam groups will be auto created
+  pullSecret: docker-registry
+  registry:
+    url: armdocker.rnd.ericsson.se
+    imagePullPolicy: IfNotPresent
+  security:
+    tls:
+      enabled: true
+  iam:
+    kubernetesSecret: eric-bss-bam-authn-proxy-client-secret
+    secretKey: authnproxyclientsecret
+    adminSecret: eric-sec-access-mgmt-creds
+    userKey: kcadminid
+    passwordKey: kcpasswd
+    tlsSecret: iam-tls-secret
+    cacert:
+      secretName: eric-bss-bam-oam-external-server-cert
+      key: ca.crt
+      filePath: iam/ca.crt
+
+tags:
+  standalone: true
+
+ingress:
+  enabled: false
+  fqdnPrefix: bss-oam-gui         # mandatory: used to calculate FQDN is global.hosts.eric-esoa-dr is not specified
+  ingressClass: ""                # optional: if set, overwrites global.ingress.ingressClass
+  tls:
+    enabled: true
+    secretName: dr-tls-secret
+    caSecret: eric-sec-sip-tls-trusted-root-cert
+  rateLimitPolicy:
+    local:
+      requests: 500
+      unit: second
+  rbac:
+    enabled: true
+
+resources:
+  iam-client:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "128Mi"
+      cpu: "100m"
+
+podPriority:
+  iam-client:
+    priorityClassName: ""
+
+eric-esoa-dr-database-pg:
+  enabled: true
+  brAgent:
+    enabled: false
+  credentials:
+    kubernetesSecretName: eric-bos-dr-database-pg-secret
+  highAvailability:
+    replicaCount: 1
+  persistentVolumeClaim:
+    size: 2Gi
+
+eric-esoa-dr-service:
+  labels:
+    eric-esoa-dr-rbac-proxy-access: "true"
+  database:
+    host: eric-esoa-dr-database-pg
+    secret: eric-bos-dr-database-pg-secret
+    schemaName: public
+    sslMode: verify-full
+    serverCertSecret: eric-sec-sip-tls-trusted-root-cert
+    clientCertSecret: eric-esoa-dr-service-pg-client-cert
+    requiresClientCert: true
+
+eric-esoa-rest-service:
+  labels:
+    eric-esoa-dr-rbac-proxy-access: "true"
+  database:
+    host: eric-esoa-dr-database-pg
+    secret: eric-bos-dr-database-pg-secret
+    schemaName: public
+    sslMode: verify-full
+    serverCertSecret: eric-sec-sip-tls-trusted-root-cert
+    clientCertSecret: eric-esoa-rest-service-pg-client-cert
+    requiresClientCert: true
+
+eric-esoa-subsystem-management:
+  enabled: true
+  rbac:
+    enabled: false
+  labels:
+    eric-esoa-dr-rbac-proxy-access: "true"
+  database:
+    host: eric-esoa-dr-database-pg
+    port: 5432
+    secret: eric-bos-dr-database-pg-secret
+    dbName: subsysmgt
+    schemaName: public
+    sslMode: verify-full
+    serverCertSecret: eric-sec-sip-tls-trusted-root-cert
+    clientCertSecret: eric-esoa-subsystem-management-pg-client-cert
+    requiresClientCert: true
+
+imageCredentials:
+  # repoPath include the image path relative to the registry url, excluding image name
+  repoPath: proj-orchestration-so
+  pullPolicy: IfNotPresent
+  registry:
+    url:
+  iam-client:
+    repoPath: proj-esoa-so
+imagePullSecrets: []
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+labels: {}
+
+annotations: {}
+
+#service:
+#  type: ClusterIP
+#  port: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+topologySpreadConstraints: []
+
+alarms:
+  enabled: true
+
+certificates:
+  enabled: true
+  duration: 720h
+  renewBefore: 360h
+  ca:
+    enabled: true
+    issuer: eric-esoa-dr-external-issuer
+    duration: 87600h #10y
+    renewBefore: 8760h #1y
+  subject:
+    organizations:
+      - "Ericsson"
+    organizationalUnits:
+      - "BOS"
+  external:
+    secret:
+      enabled: true
+
+rbac:
+  label: eric-esoa-dr-rbac
+  oamLabel: oam-rbac
+
+eric-esoa-dr-service-rbac-proxy:
+  replicaCount: 1
+  config:
+    upstream:
+      url: https://eric-esoa-dr-service:443
+      noTlsUrl: http://eric-esoa-dr-service:80
+      issuerRef: eric-bos-esoa-common-client-ca
+    oidcAuth:
+      enabled: true
+      caSecret: eric-bss-bam-oam-oidc-ca-bundle
+      removeAuthenticatedToken: false
+    rbac:
+      globalRolePolicyCmLabel: eric-esoa-dr-rbac
+    tls:
+      # Default values for tls disabled.The values should be overridden and set to empty string when
+      # deploying with tls enabled.
+      existingSecret: "eric-bss-bam-oam-external-server-cert"
+      privateKey: "tls.key"
+      certKey: "tls.crt"
+      caKey: "ca.crt"
+  enabled: true
+  ingress:
+    enabled: false
+  networkPolicy:
+    egress:
+      accessLabels:
+        rbacProxy:
+          # Service labels to denote access from this proxy
+          eric-esoa-dr-rbac-proxy-access: "true"
+
+eric-esoa-rest-service-rbac-proxy:
+  replicaCount: 1
+  config:
+    upstream:
+      url: https://eric-esoa-rest-service:443
+      noTlsUrl: http://eric-esoa-rest-service:80
+      issuerRef: eric-bos-esoa-common-client-ca
+    oidcAuth:
+      enabled: true
+      caSecret: eric-bss-bam-oam-oidc-ca-bundle
+      removeAuthenticatedToken: false
+    rbac:
+      globalRolePolicyCmLabel: eric-esoa-dr-rbac
+    tls:
+      # Default values for tls disabled.The values should be overridden and set to empty string when
+      # deploying with tls enabled.
+      existingSecret: "eric-bss-bam-oam-external-server-cert"
+      privateKey: "tls.key"
+      certKey: "tls.crt"
+      caKey: "ca.crt"
+  enabled: true
+  ingress:
+    enabled: false
+  networkPolicy:
+    egress:
+      accessLabels:
+        rbacProxy:
+          # Service labels to denote access from this proxy
+          eric-esoa-dr-rbac-proxy-access: "true"
+
+eric-esoa-dr-ui-rbac-proxy:
+  replicaCount: 1
+  config:
+    upstream:
+      url: https://eric-esoa-dr-ui
+      noTlsUrl: http://eric-esoa-dr-ui
+      issuerRef: eric-bos-esoa-common-client-ca
+    oidcAuth:
+      clientId: AuthorizationClient
+      enabled: true
+      caSecret: eric-bss-bam-oam-oidc-ca-bundle
+      removeAuthenticatedToken: false
+    rbac:
+      globalRolePolicyCmLabel: eric-esoa-dr-rbac
+    tls:
+      # Default values for tls disabled.The values should be overridden and set to empty string when
+      # deploying with tls enabled.
+      existingSecret: "eric-bss-bam-oam-external-server-cert"
+      privateKey: "tls.key"
+      certKey: "tls.crt"
+      caKey: "ca.crt"
+  enabled: true
+  ingress:
+    enabled: false
+  networkPolicy:
+    egress:
+      accessLabels:
+        rbacProxy:
+          # Service labels to denote access from this proxy
+          eric-esoa-dr-rbac-proxy-access: "true"
+
+eric-esoa-subsystem-management-rbac-proxy:
+  replicaCount: 1
+  config:
+    upstream:
+      url: https://eric-esoa-subsystem-management:443 # The upstream service url. Configurable to use https as well
+      noTlsUrl: http://eric-esoa-subsystem-management:80
+      issuerRef: eric-bos-esoa-common-client-ca
+    oidcAuth:
+      enabled: true
+      caSecret: eric-bss-bam-oam-oidc-ca-bundle
+      removeAuthenticatedToken: false # To propogate the token to upstream services
+    rbac:
+      globalRolePolicyCmLabel: eric-esoa-dr-rbac
+    tls:
+      # Default values for tls disabled.The values should be overridden and set to empty string when
+      # deploying with tls enabled.
+      existingSecret: "eric-bss-bam-oam-external-server-cert"
+      privateKey: "tls.key"
+      certKey: "tls.crt"
+      caKey: "ca.crt"
+  enabled: true
+  ingress:
+    enabled: false
+  networkPolicy:
+    egress:
+      accessLabels:
+        rbacProxy:
+          eric-esoa-platform-rbac-proxy-access: "true"

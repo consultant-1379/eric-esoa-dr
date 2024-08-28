@@ -1,0 +1,298 @@
+#
+# COPYRIGHT Ericsson 2024
+#
+#
+#
+# The copyright to the computer program(s) herein is the property of
+#
+# Ericsson Inc. The programs may be used and/or copied only with written
+#
+# permission from Ericsson Inc. or in accordance with the terms and
+#
+# conditions stipulated in the agreement/contract under which the
+#
+# program(s) have been supplied.
+#
+
+{{- if .Values.alarms.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "eric-esoa-dr.name" . }}-unavailable-degraded-pm-config
+  labels:
+    app: {{ template "eric-esoa-dr.name" . }}
+    bss.ericsson.com/bamPMconfigAggregator: "true"
+  {{- include "eric-esoa-dr.kubernetes-io-info" .| nindent 4 }}
+  annotations:
+  {{- include "eric-esoa-dr.annotations" .| nindent 4 }}
+data:
+  pmThreshold.json: |-
+    {
+      "data": {
+        "ericsson-pm:pm": {
+          "job": [
+            {
+              "granularity-period": "one-min",
+              "name": "eric-esoa-dr-service-unavailable-job",
+              "requested-job-state": "active",
+              "type": "threshold-job",
+              "measurement-reader": [
+                {
+                  "group-ref": "eric-bos-dr-alarm-group",
+                  "measurement-type-ref": "eric-esoa-dr-service-unavailable",
+                  "name": "eric-esoa-dr-service-unavailable-reader",
+                  "threshold-monitoring": [
+                    {
+                      "name": "eric-esoa-dr-service-unavailable-critical",
+                      "threshold-high": "1",
+                      "threshold-low": "0",
+                      "threshold-severity": "critical"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "granularity-period": "one-min",
+              "name": "eric-esoa-dr-service-degraded-job",
+              "requested-job-state": "active",
+              "type": "threshold-job",
+              "measurement-reader": [
+                {
+                  "group-ref": "eric-bos-dr-alarm-group",
+                  "measurement-type-ref": "eric-esoa-dr-service-degraded",
+                  "name": "eric-esoa-dr-service-degraded-reader",
+                  "threshold-monitoring": [
+                    {
+                      "name": "eric-esoa-dr-service-degraded-warning",
+                      "threshold-high": "1",
+                      "threshold-low": "0",
+                      "threshold-severity": "warning"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "granularity-period": "one-min",
+              "name": "eric-esoa-rest-service-unavailable-job",
+              "requested-job-state": "active",
+              "type": "threshold-job",
+              "measurement-reader": [
+                {
+                  "group-ref": "eric-bos-dr-alarm-group",
+                  "measurement-type-ref": "eric-esoa-rest-service-unavailable",
+                  "name": "eric-esoa-rest-service-unavailable-reader",
+                  "threshold-monitoring": [
+                    {
+                      "name": "eric-esoa-rest-service-unavailable-critical",
+                      "threshold-high": "1",
+                      "threshold-low": "0",
+                      "threshold-severity": "critical"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "granularity-period": "one-min",
+              "name": "eric-esoa-rest-service-degraded-job",
+              "requested-job-state": "active",
+              "type": "threshold-job",
+              "measurement-reader": [
+                {
+                  "group-ref": "eric-bos-dr-alarm-group",
+                  "measurement-type-ref": "eric-esoa-rest-service-degraded",
+                  "name": "eric-esoa-rest-service-degraded-reader",
+                  "threshold-monitoring": [
+                    {
+                      "name": "eric-esoa-rest-service-degraded-warning",
+                      "threshold-high": "1",
+                      "threshold-low": "0",
+                      "threshold-severity": "warning"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "granularity-period": "one-min",
+              "name": "eric-esoa-dr-ui-unavailable-job",
+              "requested-job-state": "active",
+              "type": "threshold-job",
+              "measurement-reader": [
+                {
+                  "group-ref": "eric-bos-dr-alarm-group",
+                  "measurement-type-ref": "eric-esoa-dr-ui-unavailable",
+                  "name": "eric-esoa-dr-ui-unavailable-reader",
+                  "threshold-monitoring": [
+                    {
+                      "name": "eric-esoa-dr-ui-unavailable-critical",
+                      "threshold-high": "1",
+                      "threshold-low": "0",
+                      "threshold-severity": "critical"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "granularity-period": "one-min",
+              "name": "eric-esoa-dr-ui-degraded-job",
+              "requested-job-state": "active",
+              "type": "threshold-job",
+              "measurement-reader": [
+                {
+                  "group-ref": "eric-bos-dr-alarm-group",
+                  "measurement-type-ref": "eric-esoa-dr-ui-degraded",
+                  "name": "eric-esoa-dr-ui-degraded-reader",
+                  "threshold-monitoring": [
+                    {
+                      "name": "eric-esoa-dr-ui-degraded-warning",
+                      "threshold-high": "1",
+                      "threshold-low": "0",
+                      "threshold-severity": "warning"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "group": [
+            {
+              "version": "0.0.1",
+              "name": "eric-bos-dr-alarm-group",
+              "measurement-type": [
+                {
+                  "id": "eric-esoa-dr-service-unavailable",
+                  "aggregation": "sum",
+                  "collection-method": "gauge",
+                  "condition": "Raised: when all a microservice's instances go down. Cleared: when at least one instance comes back up.",
+                  "description": "Raise alarm when an application goes down, and clear it once it's back up.",
+                  "measurement-status": "used",
+                  "multiplicity": 1,
+                  "reset-at-gran-period": false,
+                  "size": 8,
+                  "internal-metric-name": "kube_deployment_status_replicas_available",
+                  "internal-instrumentation-label": {
+                    "deployment": "eric-esoa-dr-service"
+                  },
+                  "internal-target-pattern": "deployment=[deployment]",
+                  "threshold-direction": "decreasing",
+                  "fm-alarm-type": "ProcessingErrorAlarm",
+                  "fault-name": "DRServiceUnavailable",
+                  "fault-description": "All eric-esoa-dr-service replicas are down - D&R Service is unavailable",
+                  "service-name": "eric-esoa-dr-service"
+                },
+                {
+                  "id": "eric-esoa-dr-service-degraded",
+                  "aggregation": "sum",
+                  "collection-method": "gauge",
+                  "condition": "Raised: when an application instance goes down. Cleared: when all instances are back up.",
+                  "description": "Raise alarm when an application suffers degradation, and clear it once it's back up completely.",
+                  "measurement-status": "used",
+                  "multiplicity": 1,
+                  "reset-at-gran-period": false,
+                  "size": 8,
+                  "internal-metric-name": "kube_deployment_status_replicas_unavailable",
+                  "internal-instrumentation-label": {
+                    "deployment": "eric-esoa-dr-service"
+                  },
+                  "internal-target-pattern": "deployment=[deployment]",
+                  "threshold-direction": "increasing",
+                  "fm-alarm-type": "ProcessingErrorAlarm",
+                  "fault-name": "DRServiceDegraded",
+                  "fault-description": "Some eric-esoa-dr-service replicas are down - D&R Service may experience degraded performance",
+                  "service-name": "eric-esoa-dr-service"
+                },
+                {
+                  "id": "eric-esoa-rest-service-unavailable",
+                  "aggregation": "sum",
+                  "collection-method": "gauge",
+                  "condition": "Raised: when all a microservice's instances go down. Cleared: when at least one instance comes back up.",
+                  "description": "Raise alarm when an application goes down, and clear it once it's back up.",
+                  "measurement-status": "used",
+                  "multiplicity": 1,
+                  "reset-at-gran-period": false,
+                  "size": 8,
+                  "internal-metric-name": "kube_deployment_status_replicas_available",
+                  "internal-instrumentation-label": {
+                    "deployment": "eric-esoa-rest-service"
+                  },
+                  "internal-target-pattern": "deployment=[deployment]",
+                  "threshold-direction": "decreasing",
+                  "fm-alarm-type": "ProcessingErrorAlarm",
+                  "fault-name": "RestServiceUnavailable",
+                  "fault-description": "All eric-esoa-rest-service replicas are down - Rest Service is unavailable",
+                  "service-name": "eric-esoa-rest-service"
+                },
+                {
+                  "id": "eric-esoa-rest-service-degraded",
+                  "aggregation": "sum",
+                  "collection-method": "gauge",
+                  "condition": "Raised: when an application instance goes down. Cleared: when all instances are back up.",
+                  "description": "Raise alarm when an application suffers degradation, and clear it once it's back up completely.",
+                  "measurement-status": "used",
+                  "multiplicity": 1,
+                  "reset-at-gran-period": false,
+                  "size": 8,
+                  "internal-metric-name": "kube_deployment_status_replicas_unavailable",
+                  "internal-instrumentation-label": {
+                    "deployment": "eric-esoa-rest-service"
+                  },
+                  "internal-target-pattern": "deployment=[deployment]",
+                  "threshold-direction": "increasing",
+                  "fm-alarm-type": "ProcessingErrorAlarm",
+                  "fault-name": "RestServiceDegraded",
+                  "fault-description": "Some eric-esoa-rest-service replicas are down - Rest Service may experience degraded performance",
+                  "service-name": "eric-esoa-rest-service"
+                },
+                {
+                  "id": "eric-esoa-dr-ui-unavailable",
+                  "aggregation": "sum",
+                  "collection-method": "gauge",
+                  "condition": "Raised: when all a microservice's instances go down. Cleared: when at least one instance comes back up.",
+                  "description": "Raise alarm when an application goes down, and clear it once it's back up.",
+                  "measurement-status": "used",
+                  "multiplicity": 1,
+                  "reset-at-gran-period": false,
+                  "size": 8,
+                  "internal-metric-name": "kube_deployment_status_replicas_available",
+                  "internal-instrumentation-label": {
+                    "deployment": "eric-esoa-dr-ui"
+                  },
+                  "internal-target-pattern": "deployment=[deployment]",
+                  "threshold-direction": "decreasing",
+                  "fm-alarm-type": "ProcessingErrorAlarm",
+                  "fault-name": "DRUIUnavailable",
+                  "fault-description": "All eric-esoa-dr-ui replicas are down - Discovery and Reconciliation GUI is unavailable",
+                  "service-name": "eric-esoa-dr-ui"
+                },
+                {
+                  "id": "eric-esoa-dr-ui-degraded",
+                  "aggregation": "sum",
+                  "collection-method": "gauge",
+                  "condition": "Raised: when an application instance goes down. Cleared: when all instances are back up.",
+                  "description": "Raise alarm when an application suffers degradation, and clear it once it's back up completely.",
+                  "measurement-status": "used",
+                  "multiplicity": 1,
+                  "reset-at-gran-period": false,
+                  "size": 8,
+                  "internal-metric-name": "kube_deployment_status_replicas_unavailable",
+                  "internal-instrumentation-label": {
+                    "deployment": "eric-esoa-dr-ui"
+                  },
+                  "internal-target-pattern": "deployment=[deployment]",
+                  "threshold-direction": "increasing",
+                  "fm-alarm-type": "ProcessingErrorAlarm",
+                  "fault-name": "DRUIDegraded",
+                  "fault-description": "Some eric-esoa-dr-ui replicas are down - Discovery and Reconciliation GUI may experience degraded performance",
+                  "service-name": "eric-esoa-dr-ui"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+{{- end }}

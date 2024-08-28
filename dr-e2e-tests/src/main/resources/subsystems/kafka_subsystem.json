@@ -1,0 +1,16 @@
+{
+    "name": "kafka-1",
+    "vendor": "mandatory_not_used",
+    "subsystemType": {
+        "type": "KAFKA"
+    },
+    "url": "not_used",
+    "connectionProperties": [
+        {
+            "username": "mandatory_not_used",
+            "password": "mandatory_not_used",
+            "bootstrapServer": "eric-bos-dr-stub-kafka:9092",
+            "ssl.enabled": false
+        }
+    ]
+}

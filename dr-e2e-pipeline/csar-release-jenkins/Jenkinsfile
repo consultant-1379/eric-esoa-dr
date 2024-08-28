@@ -1,0 +1,88 @@
+def bob = "bob/bob"
+
+pipeline {
+    agent {
+        node {
+            label 'so_slave'
+        }
+    }
+    environment {
+        SERO_ARTIFACTORY_REPO = credentials('esoadm100-sero-artifactory')
+        SELI_ARTIFACTORY_REPO= credentials('esoadm100-seli-artifactory')
+    }
+
+    parameters {
+        string(name: 'CHART_VERSION', defaultValue: '', description: 'Version of eric-esoa-dr Helm chart, e.g. 0.0.10-1')
+    }
+    stages {
+
+        stage('Prepare pipeline') {
+             steps {
+                script {
+                   // Set build name
+                   authorName = sh(returnStdout: true, script: 'git show -s --pretty=%an')
+                   currentBuild.displayName = currentBuild.displayName + ' / ' + authorName
+
+                   if (fileExists('pipeline-variables.groovy')) {
+                       load './pipeline-variables.groovy'
+                   }
+                }
+             }
+        }
+
+        stage ('Prepare workspace') {
+            steps {
+                // bob repo is cloned because if we use the bob docker image, then shell commands will not be run on the slave, they will be run inside the bob docker image.
+                sh 'git clone ssh://gerrit.ericsson.se:29418/adp-cicd/bob/'
+                sh "${bob} -r dr-e2e-pipeline/rulesets/ruleset2.0.yaml clean-workspace"
+                // Inject docker config.json
+                configFileProvider([configFile(fileId: "esoadm100-docker-auth", targetLocation: "${env.WORKSPACE}/.docker/")]) {}
+            }
+        }
+
+        stage('Check if CSAR exists') {
+            steps {
+                sh "${bob} -r dr-e2e-pipeline/rulesets/ruleset2.0.yaml check-csar-exists"
+                script {
+                    if(readFile('.bob/var.csar-exists').trim() == 'true') {
+                       echo('Exiting job because csar already exists')
+                       error("Build failed as csar already exists.")
+                    }
+                }
+            }
+        }
+
+        stage('Fetch helm chart') {
+             steps {
+                sh "${bob} -r dr-e2e-pipeline/rulesets/ruleset2.0.yaml fetch-helm-chart"
+             }
+        }
+
+        stage('Create csar of updated helm chart') {
+            steps {
+                sh "${bob} -r dr-e2e-pipeline/rulesets/ruleset2.0.yaml create-csar"
+            }
+        }
+
+        stage('Publish csar') {
+            steps {
+                sh "${bob} -r dr-e2e-pipeline/rulesets/ruleset2.0.yaml upload-csar"
+            }
+        }
+
+        stage('Teardown') {
+            steps {
+                sh "${bob} -r dr-e2e-pipeline/rulesets/ruleset2.0.yaml remove-csar-and-chart"
+                script {
+                   // Add version to build name
+                   currentBuild.displayName = currentBuild.displayName + ' / ' + params.CHART_VERSION
+                }
+            }
+        }
+    }
+    post{
+        always{
+            cleanWs()
+         }
+    }
+}

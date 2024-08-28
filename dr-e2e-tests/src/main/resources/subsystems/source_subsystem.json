@@ -1,0 +1,25 @@
+{
+    "name": "wiremock_source",
+    "vendor": "mandatory_not_used",
+    "subsystemType": {
+        "type": "REST"
+    },
+    "url": "http://eric-bos-dr-stub-wiremock",
+    "connectionProperties": [
+        {
+            "username": "mandatory_not_used",
+            "password": "mandatory_not_used",
+            "ssl.verify": false,
+            "auth.type": "Cookie",
+            "auth.url": "/login?IDToken1=administrator&IDToken2=TestPassw0rd",
+            "auth.headers": "{\"content-type\":[\"application/x-www-form-urlencoded\"],\"accept\":[\"*/*\"]}",
+            "auth.method": "POST",
+            "auth.expireSeconds": 300,
+            "auth.key": "source_token",
+            "auth.tokenRef": "JSESSIONID",
+            "client.connectTimeoutSeconds": "10",
+            "client.readTimeoutSeconds": "60",
+            "client.writeTimeoutSeconds": "60"
+        }
+    ]
+}

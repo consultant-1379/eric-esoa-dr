@@ -1,0 +1,16 @@
+[
+  {
+    "featurePack": "/feature_packs/fp-1",
+    "listener": "listener_1",
+    "event": {"eventType":  "CREATE"},
+    "expectedDiscoveryCount": 1,
+    "expectedReconcileCount": 1
+  },
+  {
+    "featurePack": "/feature_packs/fp-2",
+    "listener": "listener_2",
+    "event": {"eventType": "CREATE","source":  "wiremock_source", "target":  "wiremock_target"},
+    "expectedDiscoveryCount": 12,
+    "expectedReconcileCount": 12
+  }
+]

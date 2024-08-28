@@ -1,0 +1,10 @@
+{
+  "name": "schedule-3",
+  "description": "test job schedule with fp-3",
+  "expression": "0/3 * * * * *",
+  "featurePack": "/feature_packs/fp-3",
+  "app": "application_3",
+  "job": "job_3",
+  "inputs": {},
+  "autoReconcile": true
+}

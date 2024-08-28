@@ -1,0 +1,59 @@
+#
+# COPYRIGHT Ericsson 2023
+#
+#
+#
+# The copyright to the computer program(s) herein is the property of
+#
+# Ericsson Inc. The programs may be used and/or copied only with written
+#
+# permission from Ericsson Inc. or in accordance with the terms and
+#
+# conditions stipulated in the agreement/contract under which the
+#
+# program(s) have been supplied.
+#
+
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ template "eric-esoa-dr.name" . }}-ssm-rbac-configmap
+  labels:
+    app: {{ template "eric-esoa-dr.name" . }}
+  {{- include "eric-esoa-dr.kubernetes-io-info" .| nindent 4 }}
+    com.ericsson.bss/bam-global-rbac: {{ .Values.rbac.label }}
+  annotations:
+  {{- include "eric-esoa-dr.annotations" .| nindent 4 }}
+data:
+  rbac: |
+    policy:
+      subsystem-viewer-1:
+        PType: p
+        V0: ESOA_SubsystemViewer
+        V1: /subsystem-manager/*
+        V2: get
+      subsystem-admin-1:
+        PType: p
+        V0: ESOA_SubsystemAdmin
+        V1: /subsystem-manager/*
+        V2: create
+      subsystem-admin-2:
+        PType: p
+        V0: ESOA_SubsystemAdmin
+        V1: /subsystem-manager/*
+        V2: update
+      subsystem-admin-3:
+        PType: p
+        V0: ESOA_SubsystemAdmin
+        V1: /subsystem-manager/*
+        V2: get
+      subsystem-admin-4:
+        PType: p
+        V0: ESOA_SubsystemAdmin
+        V1: /subsystem-manager/*
+        V2: patch
+      subsystem-admin-5:
+        PType: p
+        V0: ESOA_SubsystemAdmin
+        V1: /subsystem-manager/*
+        V2: delete

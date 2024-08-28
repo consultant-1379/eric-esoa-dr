@@ -1,0 +1,153 @@
+def bob = "bob/bob"
+
+pipeline {
+    agent {
+        node {
+            label 'so_slave'
+        }
+    }
+    environment {
+        DR_FQDN= "${params.FQDN_PREFIX}.${params.DR_BASE_HOSTNAME}"
+        SERO_ARTIFACTORY_REPO = credentials('esoadm100-sero-artifactory')
+        SELI_ARTIFACTORY_REPO= credentials('esoadm100-seli-artifactory')
+        HELM_CREDS = credentials('esoadm100_helm_repository_creds_file')
+        GERRIT_PASSWORD = credentials ('esoadm100')
+    }
+
+    parameters {
+        string(name: 'DEPENDENCY_CHART_NAME', defaultValue: '', description: 'Dependency chart name')
+        string(name: 'DEPENDENCY_CHART_VERSION', defaultValue: '', description: 'Dependency chart version')
+        string(name: 'DEPENDENCY_CHART_REPO', defaultValue: '', description: 'Dependency chart repo')
+        string(name: 'CLUSTER_CONFIG', defaultValue: 'supernova2', description: 'Kubectl config file for accessing the cluster')
+        string(name: 'NAMESPACE', defaultValue: 'so-team-supernova2', description: 'Namespace where D&R will be installed')
+        string(name: 'FQDN_PREFIX', defaultValue: 'bss-oam-gui', description: 'The FQDN prefix')
+        string(name: 'DR_BASE_HOSTNAME' , defaultValue: 'supernova2-haber003.ews.gic.ericsson.se', description: 'The D&R base hostname (excluding https://<FQDN_PREFIX>.')
+    }
+    stages {
+
+        stage('Prepare pipeline') {
+             steps {
+                script {
+                   // Set build name
+                   authorName = sh(returnStdout: true, script: 'git show -s --pretty=%an')
+                   currentBuild.displayName = currentBuild.displayName + ' / ' + authorName
+
+                   if (fileExists('pipeline-variables.groovy')) {
+                       load './pipeline-variables.groovy'
+                   }
+                }
+             }
+        }
+
+        stage ('Prepare workspace') {
+            steps {
+                // bob repo is cloned because if we use the bob docker image, then shell commands will not be run on the slave, they will be run inside the bob docker image.
+                sh 'git clone ssh://gerrit.ericsson.se:29418/adp-cicd/bob/'
+                sh "${bob} -r dr-e2e-pipeline/rulesets/ruleset2.0.yaml clean-workspace"
+                // Inject Kubernetes configurations file
+                configFileProvider([configFile(fileId: "${env.CLUSTER_CONFIG}", targetLocation: "${env.WORKSPACE}/.kube/")]) {}
+            }
+        }
+
+        stage('Prepare helm chart') {
+             steps {
+                sh "${bob} -r dr-e2e-pipeline/rulesets/ruleset2.0.yaml prepare-helm-chart"
+                sh "${bob} -r dr-e2e-pipeline/rulesets/ruleset2.0.yaml generate-artifact-properties"
+                archiveArtifacts 'artifact.properties'
+             }
+        }
+
+        stage('Run Helm Design Rule Check') {
+            steps {
+                echo "Helm chart Design Rule checker will come back shortly"
+//                 sh "${bob} -r dr-e2e-pipeline/rulesets/ruleset2.0.yaml adp-helm-dr-check"
+            }
+//             post {
+//                 always {
+//                     archiveArtifacts allowEmptyArchive: true, artifacts: '.bob/design-rule-check-report.*'
+//                 }
+//             }
+        }
+
+        stage('Pre-deploy') {
+             steps {
+                script {
+                        echo "Delete existing environment details"
+                        sh "${bob} -r dr-e2e-pipeline/rulesets/ruleset2.0.yaml clean-up"
+                }
+             }
+        }
+
+        stage('Deploy prepared helm chart') {
+             steps {
+                sh "${bob} -r dr-e2e-pipeline/rulesets/ruleset2.0.yaml deploy-helm-chart"
+             }
+        }
+
+        stage('Build dr-e2e-tests docker image') {
+            steps {
+                configFileProvider([configFile(fileId: "maven.settings.eso", targetLocation: "${env.WORKSPACE}/dr-e2e-pipeline")]) {}
+                sh "${bob} -r dr-e2e-pipeline/rulesets/ruleset2.0.yaml build-dr-e2e-tests-docker-image"
+            }
+        }
+
+        stage('Execute dr-nbi-e2e-tests') {
+            steps {
+                sh "${bob} -r dr-e2e-pipeline/rulesets/ruleset2.0.yaml run-dr-e2e-tests"
+            }
+        }
+
+        stage('Execute dr-ui-e2e-tests') {
+            steps {
+                build propagate: true, job: 'eric-esoa-dr-e2e-ui-test', parameters: [string(name: 'DR_URL', value: "https://${FQDN_PREFIX}.${DR_BASE_HOSTNAME}")]
+            }
+        }
+
+        stage('Commit changes and publish updated helm chart') {
+            steps {
+                sh "${bob} -r dr-e2e-pipeline/rulesets/ruleset2.0.yaml publish-helm-chart"
+            }
+        }
+
+        stage('Teardown') {
+            steps {
+                script {
+                   // Add released version to build name
+                   releaseVersion = sh(returnStdout: true, script: 'cat .bob/var.updated-version')
+                   currentBuild.displayName = currentBuild.displayName + ' / ' + releaseVersion + ' / ' + params.DEPENDENCY_CHART_NAME + '_' + params.DEPENDENCY_CHART_VERSION
+                }
+                sh "${bob} -r dr-e2e-pipeline/rulesets/ruleset2.0.yaml clean-up"
+            }
+        }
+    }
+    post{
+        always{
+            testNG()
+            allure includeProperties: false, results: [[path: 'allure-results']]
+            cleanWs()
+        }
+
+        failure{
+            script {
+                sendErrorEmail();
+            }
+        }
+    }
+}
+
+// Send Email when the job fails
+def sendErrorEmail() {
+    try {
+        mail to: "PDLDOANVIL@pdl.internal.ericsson.com",
+            from: "jenkins-ossadmin-no-reply@ericsson.com",
+            cc: "",
+            subject: "Action Required! Failure in ${env.JOB_NAME}",
+            body: "The build <a href='${env.BUILD_URL}'>#${env.BUILD_NUMBER}</a> of ${env.JOB_NAME} has failed!<br>" +
+            "Please have a look into this and take appropriate action!<br>" +
+            "<br><b>Note</b>: This mail has been sent automatically by <a href='${env.BUILD_URL}'>${env.JOB_NAME}</a>",
+            mimeType: 'text/html'
+    } catch (Exception e) {
+        echo "Email notification was not sent."
+        print e
+    }
+}

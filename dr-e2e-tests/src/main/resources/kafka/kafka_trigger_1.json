@@ -1,0 +1,10 @@
+{
+  "description": "Trigger job which fails",
+  "featurePack": "/feature_packs/fp-3",
+  "listener": "listener_3",
+  "event": {"eventType":  "CREATE"},
+  "subsystemFilePath": "/subsystems/kafka_subsystem.json",
+  "useDefaultGroupId": false,
+  "topics": ["dr-test-topic-3"],
+  "triggeredJobName": "listener_3-job_3"
+}

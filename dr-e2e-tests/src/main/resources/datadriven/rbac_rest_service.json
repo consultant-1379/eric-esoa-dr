@@ -1,0 +1,33 @@
+[
+  {"username": "unauthorized-user", "path": "/rest-service/v1/resource-configurations", "method": "GET","expectedResponseCode": 403},
+  {"username": "unauthorized-user", "path": "/rest-service/v1/resource-configurations/config1", "method": "GET","expectedResponseCode": 403},
+  {"username": "unauthorized-user", "path": "/rest-service/v1/resource-configurations/config1", "method": "DELETE","expectedResponseCode": 403},
+  {"username": "unauthorized-user", "path": "/rest-service/v1/resource-configurations", "method": "POST","expectedResponseCode": 403},
+  {"username": "unauthorized-user", "path": "/rest-service/v1/resource-configurations/config1", "method": "PUT","expectedResponseCode": 403},
+  {"username": "unauthorized-user", "path": "/rest-service/v1/resource-configurations/config1/files", "method": "GET","expectedResponseCode": 403},
+  {"username": "unauthorized-user", "path": "/rest-service/v1/run/subsystem1/config1/resource1", "method": "POST","expectedResponseCode": 403},
+
+  {"username": "dr-read-only-user", "path": "/rest-service/v1/resource-configurations", "method": "GET","expectedResponseCode": 200},
+  {"username": "dr-read-only-user", "path": "/rest-service/v1/resource-configurations/config1", "method": "GET","expectedResponseCode": 404},
+  {"username": "dr-read-only-user", "path": "/rest-service/v1/resource-configurations/config1", "method": "DELETE","expectedResponseCode": 403},
+  {"username": "dr-read-only-user", "path": "/rest-service/v1/resource-configurations", "method": "POST","expectedResponseCode": 403},
+  {"username": "dr-read-only-user", "path": "/rest-service/v1/resource-configurations/config1", "method": "PUT","expectedResponseCode": 403},
+  {"username": "dr-read-only-user", "path": "/rest-service/v1/resource-configurations/config1/files", "method": "GET","expectedResponseCode": 404},
+  {"username": "dr-read-only-user", "path": "/rest-service/v1/run/subsystem1/config1/resource1", "method": "POST","expectedResponseCode": 403},
+
+  {"username": "dr-read-write-user", "path": "/rest-service/v1/resource-configurations", "method": "GET","expectedResponseCode": 200},
+  {"username": "dr-read-write-user", "path": "/rest-service/v1/resource-configurations/config1", "method": "GET","expectedResponseCode": 404},
+  {"username": "dr-read-write-user", "path": "/rest-service/v1/resource-configurations/config1", "method": "DELETE","expectedResponseCode": 404},
+  {"username": "dr-read-write-user", "path": "/rest-service/v1/resource-configurations", "method": "POST","expectedResponseCode": 500},
+  {"username": "dr-read-write-user", "path": "/rest-service/v1/resource-configurations/config1", "method": "PUT","expectedResponseCode": 500},
+  {"username": "dr-read-write-user", "path": "/rest-service/v1/resource-configurations/config1/files", "method": "GET","expectedResponseCode": 404},
+  {"username": "dr-read-write-user", "path": "/rest-service/v1/run/subsystem1/config1/resource1", "method": "POST","expectedResponseCode": 404},
+
+  {"username": "dr-admin-user", "path": "/rest-service/v1/resource-configurations", "method": "GET","expectedResponseCode": 200},
+  {"username": "dr-admin-user", "path": "/rest-service/v1/resource-configurations/config1", "method": "GET","expectedResponseCode": 404},
+  {"username": "dr-admin-user", "path": "/rest-service/v1/resource-configurations/config1", "method": "DELETE","expectedResponseCode": 404},
+  {"username": "dr-admin-user", "path": "/rest-service/v1/resource-configurations", "method": "POST","expectedResponseCode": 500},
+  {"username": "dr-admin-user", "path": "/rest-service/v1/resource-configurations/config1", "method": "PUT","expectedResponseCode": 500},
+  {"username": "dr-admin-user", "path": "/rest-service/v1/resource-configurations/config1/files", "method": "GET","expectedResponseCode": 404},
+  {"username": "dr-admin-user", "path": "/rest-service/v1/run/subsystem1/config1/resource1", "method": "POST","expectedResponseCode": 404}
+]

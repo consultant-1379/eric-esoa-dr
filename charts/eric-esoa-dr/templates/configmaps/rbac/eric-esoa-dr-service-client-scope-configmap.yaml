@@ -1,0 +1,54 @@
+#
+# COPYRIGHT Ericsson 2023
+#
+#
+#
+# The copyright to the computer program(s) herein is the property of
+#
+# Ericsson Inc. The programs may be used and/or copied only with written
+#
+# permission from Ericsson Inc. or in accordance with the terms and
+#
+# conditions stipulated in the agreement/contract under which the
+#
+# program(s) have been supplied.
+#
+{{- if and .Values.tags.standalone .Values.global.hosts.iam }}
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ template "eric-esoa-dr.name" . }}-client-scope-configmap
+  labels:
+    app: {{ template "eric-esoa-dr.name" . }}
+  {{- include "eric-esoa-dr.kubernetes-io-info" .| nindent 4 }}
+    com.ericsson.bss/bam-global-rbac: {{ .Values.rbac.label }}
+  annotations:
+  {{- include "eric-esoa-dr.annotations" .| nindent 4 }}
+data:
+  client-scope.json: |-
+    {
+        "name": "dr-role-mapper",
+        "protocol": "openid-connect",
+        "attributes": {
+          "include.in.token.scope": "true",
+          "display.on.consent.screen": "true"
+        },
+        "protocolMappers": [
+            {
+                "name": "dr-role-mapper",
+                "protocol": "openid-connect",
+                "protocolMapper": "oidc-group-membership-mapper",
+                "consentRequired": false,
+                "config": {
+                    "claim.type": "String",
+                    "claim.name": "iam_roles",
+                    "jsonType.label": "String",
+                    "claim.value": "authn-proxy",
+                    "id.token.claim": "true",
+                    "access.token.claim": "true",
+                    "multivalued": "true"
+                }
+            }
+        ]
+    }
+{{- end }}
